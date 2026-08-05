@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scientific Calculator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-deep:#0b0d0d;
+    --body-panel:#16191a;
+    --body-panel-2:#1c2022;
+    --seam:#0a0c0c;
+    --display-bg:#0e1512;
+    --display-bg-2:#0a100d;
+    --phosphor:#ffb020;
+    --phosphor-dim:#8a6320;
+    --phosphor-glow:rgba(255,176,32,0.35);
+    --key-num:#25292b;
+    --key-num-hi:#2e3335;
+    --key-fn:#1c3a38;
+    --key-fn-hi:#234745;
+    --key-op:#3a2a1e;
+    --key-op-hi:#4a3526;
+    --key-eq:#b8681f;
+    --key-eq-hi:#d47a26;
+    --text-primary:#e9e6dd;
+    --text-dim:#8b9290;
+    --teal:#5ec8c0;
+    --mono:'IBM Plex Mono', monospace;
+    --sans:'Inter', sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0; padding:0; height:100%;
+    background:
+      radial-gradient(ellipse at 50% -10%, #1a1d1d 0%, var(--bg-deep) 55%);
+    font-family:var(--sans);
+    color:var(--text-primary);
+    display:flex; align-items:center; justify-content:center;
+    min-height:100vh;
+  }
+  .rig{
+    display:flex; flex-direction:column; align-items:center;
+    gap:14px;
+    padding:24px 14px;
+  }
+  .label-plate{
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:0.32em;
+    color:var(--text-dim);
+    text-transform:uppercase;
+  }
+  .calc{
+    width:min(420px, 92vw);
+    background:linear-gradient(180deg, var(--body-panel-2), var(--body-panel));
+    border-radius:22px;
+    padding:18px 18px 22px;
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.04) inset,
+      0 30px 60px -20px rgba(0,0,0,0.7),
+      0 0 0 1px var(--seam);
+    position:relative;
+  }
+  .calc::before{
+    content:"";
+    position:absolute; inset:0;
+    border-radius:22px;
+    background:repeating-linear-gradient(90deg, rgba(255,255,255,0.015) 0 1px, transparent 1px 3px);
+    pointer-events:none;
+  }
+  .top-row{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:2px 4px 10px;
+  }
+  .brand{
+    font-family:var(--mono); font-weight:600; font-size:12px;
+    letter-spacing:0.18em; color:var(--text-dim);
+  }
+  .mode-lights{
+    display:flex; gap:10px; align-items:center;
+    font-family:var(--mono); font-size:10px; letter-spacing:0.1em; color:var(--text-dim);
+  }
+  .lamp{
+    width:6px; height:6px; border-radius:50%;
+    background:#333; box-shadow: inset 0 0 2px rgba(0,0,0,0.6);
+    transition:background .15s, box-shadow .15s;
+  }
+  .lamp.on{ background:var(--teal); box-shadow:0 0 6px var(--teal), 0 0 2px var(--teal); }
+
+  .screen{
+    background:linear-gradient(180deg, var(--display-bg), var(--display-bg-2));
+    border-radius:12px;
+    padding:16px 18px 14px;
+    margin-bottom:16px;
+    box-shadow:
+      inset 0 2px 6px rgba(0,0,0,0.6),
+      inset 0 0 24px rgba(0,0,0,0.35),
+      0 0 0 1px rgba(0,0,0,0.5);
+    position:relative;
+    overflow:hidden;
+    min-height:96px;
+    display:flex; flex-direction:column; justify-content:flex-end;
+  }
+  .screen::after{
+    content:"";
+    position:absolute; inset:0;
+    background:repeating-linear-gradient(180deg, rgba(255,255,255,0.02) 0 1px, transparent 1px 3px);
+    pointer-events:none;
+    mix-blend-mode:overlay;
+  }
+  .expr{
+    font-family:var(--mono);
+    font-size:14px;
+    color:var(--phosphor-dim);
+    min-height:18px;
+    white-space:nowrap;
+    overflow-x:auto;
+    text-shadow:0 0 6px rgba(255,176,32,0.15);
+    scrollbar-width:none;
+  }
+  .expr::-webkit-scrollbar{display:none;}
+  .result{
+    font-family:var(--mono);
+    font-weight:500;
+    font-size:clamp(28px, 8vw, 38px);
+    color:var(--phosphor);
+    text-shadow:0 0 10px var(--phosphor-glow), 0 0 2px var(--phosphor-glow);
+    white-space:nowrap;
+    overflow-x:auto;
+    scrollbar-width:none;
+    line-height:1.2;
+  }
+  .result::-webkit-scrollbar{display:none;}
+
+  .keys{
+    display:grid;
+    grid-template-columns:repeat(5, 1fr);
+    gap:8px;
+  }
+  button{
+    font-family:var(--sans);
+    font-size:14px;
+    font-weight:600;
+    color:var(--text-primary);
+    border:none;
+    border-radius:10px;
+    padding:13px 4px;
+    cursor:pointer;
+    background:var(--key-num);
+    box-shadow:
+      0 2px 0 rgba(0,0,0,0.35),
+      0 1px 0 rgba(255,255,255,0.03) inset;
+    transition:transform .06s ease, box-shadow .06s ease, background .1s ease;
+    -webkit-tap-highlight-color:transparent;
+    user-select:none;
+  }
+  button:active{
+    transform:translateY(2px);
+    box-shadow:0 0 0 rgba(0,0,0,0.35);
+  }
+  button:focus-visible{
+    outline:2px solid var(--teal);
+    outline-offset:2px;
+  }
+  button:hover{ background:var(--key-num-hi); }
+
+  .fn{ background:var(--key-fn); color:#cfe9e6; font-family:var(--mono); font-weight:500; font-size:13px;}
+  .fn:hover{ background:var(--key-fn-hi); }
+  .op{ background:var(--key-op); color:#f2c89a; font-family:var(--mono); font-size:16px; }
+  .op:hover{ background:var(--key-op-hi); }
+  .eq{ background:var(--key-eq); color:#1a1204; }
+  .eq:hover{ background:var(--key-eq-hi); }
+  .wide{ grid-column:span 2; }
+  .num{ font-family:var(--mono); font-size:17px; }
+
+  @media (prefers-reduced-motion: reduce){
+    button{ transition:none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="rig">
+  <div class="label-plate">Model SC-100 · Scientific</div>
+  <div class="calc">
+    <div class="top-row">
+      <div class="brand">◆ SC-100</div>
+      <div class="mode-lights">
+        <span id="deg-label">DEG</span>
+        <span class="lamp" id="lamp-rad"></span>
+        <span>INV</span>
+        <span class="lamp" id="lamp-inv"></span>
+      </div>
+    </div>
+
+    <div class="screen">
+      <div class="expr" id="expr">&nbsp;</div>
+      <div class="result" id="result">0</div>
+    </div>
+
+    <div class="keys" id="keys">
+      <!-- Row 1: scientific -->
+      <button class="fn" data-act="inv">INV</button>
+      <button class="fn" data-act="deg">DEG/RAD</button>
+      <button class="fn" data-val="(">(</button>
+      <button class="fn" data-val=")">)</button>
+      <button class="fn" data-act="clear">C</button>
+
+      <!-- Row 2 -->
+      <button class="fn" data-act="sin">sin</button>
+      <button class="fn" data-act="cos">cos</button>
+      <button class="fn" data-act="tan">tan</button>
+      <button class="fn" data-act="pow">x^y</button>
+      <button class="fn" data-act="back">⌫</button>
+
+      <!-- Row 3 -->
+      <button class="fn" data-act="log">log</button>
+      <button class="fn" data-act="ln">ln</button>
+      <button class="fn" data-act="sqrt">√</button>
+      <button class="fn" data-act="fact">x!</button>
+      <button class="op" data-val="/">÷</button>
+
+      <!-- Row 4: numbers -->
+      <button class="num" data-val="7">7</button>
+      <button class="num" data-val="8">8</button>
+      <button class="num" data-val="9">9</button>
+      <button class="fn" data-act="pi">π</button>
+      <button class="op" data-val="*">×</button>
+
+      <button class="num" data-val="4">4</button>
+      <button class="num" data-val="5">5</button>
+      <button class="num" data-val="6">6</button>
+      <button class="fn" data-act="e">e</button>
+      <button class="op" data-val="-">−</button>
+
+      <button class="num" data-val="1">1</button>
+      <button class="num" data-val="2">2</button>
+      <button class="num" data-val="3">3</button>
+      <button class="fn" data-act="inv-fn">1/x</button>
+      <button class="op" data-val="+">+</button>
+
+      <button class="num" data-val="0" style="grid-column:span 2;">0</button>
+      <button class="num" data-val=".">.</button>
+      <button class="fn" data-act="percent">%</button>
+      <button class="eq" data-act="equals">=</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const exprEl = document.getElementById('expr');
+  const resultEl = document.getElementById('result');
+  const lampRad = document.getElementById('lamp-rad');
+  const lampInv = document.getElementById('lamp-inv');
+  const degLabel = document.getElementById('deg-label');
+
+  let expr = '';       // what's shown/edited, using human symbols
+  let isDeg = true;
+  let isInv = false;
+  let justEvaluated = false;
+
+  function updateLamps(){
+    lampRad.classList.toggle('on', !isDeg);
+    lampInv.classList.toggle('on', isInv);
+    degLabel.textContent = isDeg ? 'DEG' : 'RAD';
+  }
+
+  function factorial(n){
+    if (n < 0 || !Number.isFinite(n)) return NaN;
+    if (Math.floor(n) !== n) return NaN; // simple factorial, integers only
+    let r = 1;
+    for(let i=2;i<=n;i++) r*=i;
+    return r;
+  }
+
+  // Convert the display expression into a JS-evaluable string.
+  function toEvaluable(str){
+    let s = str;
+    s = s.replace(/π/g, 'PI');
+    s = s.replace(/e(?![a-zA-Z])/g, 'E');
+    s = s.replace(/×/g, '*');
+    s = s.replace(/÷/g, '/');
+    s = s.replace(/−/g, '-');
+    s = s.replace(/√\(/g, 'sqrt(');
+    s = s.replace(/√([0-9.]+)/g, 'sqrt($1)');
+    // x^y already inserted as ^ -> convert to **
+    s = s.replace(/\^/g, '**');
+    // factorial: number followed by !
+    s = s.replace(/(\d+(\.\d+)?)!/g, 'fact($1)');
+    return s;
+  }
+
+  function trig(fn, val){
+    const rad = isDeg ? val * Math.PI/180 : val;
+    switch(fn){
+      case 'sin': return isInv ? (isDeg ? Math.asin(val)*180/Math.PI : Math.asin(val)) : Math.sin(rad);
+      case 'cos': return isInv ? (isDeg ? Math.acos(val)*180/Math.PI : Math.acos(val)) : Math.cos(rad);
+      case 'tan': return isInv ? (isDeg ? Math.atan(val)*180/Math.PI : Math.atan(val)) : Math.tan(rad);
+    }
+  }
+
+  function evaluate(){
+    if(!expr) return;
+    let toEval = toEvaluable(expr);
+    try{
+      const sqrt = Math.sqrt;
+      const fact = factorial;
+      const PI = Math.PI;
+      const E = Math.E;
+      const log = Math.log10 || (x => Math.log(x)/Math.LN10);
+      const ln = Math.log;
+      // trig with deg/inv handling: replace sin(/cos(/tan( calls manually
+      toEval = toEval.replace(/(sin|cos|tan)\(/g, '__TRIG__$1(');
+      const trigFn = (name, val) => trig(name, val);
+      // eslint-disable-next-line no-new-func
+      const fn = new Function('sqrt','fact','PI','E','log','ln','__TRIGsin','__TRIGcos','__TRIGtan',
+        'return ' + toEval
+          .replace(/__TRIG__sin\(/g, '__TRIGsin(')
+          .replace(/__TRIG__cos\(/g, '__TRIGcos(')
+          .replace(/__TRIG__tan\(/g, '__TRIGtan(') + ';'
+      );
+      const val = fn(sqrt, fact, PI, E, log, ln,
+        (x)=>trigFn('sin',x), (x)=>trigFn('cos',x), (x)=>trigFn('tan',x));
+      if (typeof val !== 'number' || !Number.isFinite(val)){
+        resultEl.textContent = 'Error';
+      } else {
+        const rounded = Math.round(val*1e10)/1e10;
+        resultEl.textContent = String(rounded);
+      }
+      exprEl.textContent = expr + ' =';
+      justEvaluated = true;
+    }catch(err){
+      resultEl.textContent = 'Error';
+      justEvaluated = true;
+    }
+  }
+
+  function render(){
+    exprEl.textContent = expr || '\u00A0';
+    if(!justEvaluated){
+      resultEl.textContent = expr ? expr : '0';
+    }
+  }
+
+  function append(str){
+    if(justEvaluated){
+      expr = '';
+      justEvaluated = false;
+    }
+    expr += str;
+    render();
+  }
+
+  function clearAll(){
+    expr = '';
+    justEvaluated = false;
+    resultEl.textContent = '0';
+    exprEl.textContent = '\u00A0';
+  }
+
+  function backspace(){
+    if(justEvaluated){ clearAll(); return; }
+    expr = expr.slice(0, -1);
+    render();
+  }
+
+  document.getElementById('keys').addEventListener('click', (e)=>{
+    const btn = e.target.closest('button');
+    if(!btn) return;
+    const val = btn.getAttribute('data-val');
+    const act = btn.getAttribute('data-act');
+
+    if(val){
+      append(val);
+      return;
+    }
+
+    switch(act){
+      case 'clear': clearAll(); break;
+      case 'back': backspace(); break;
+      case 'equals': evaluate(); break;
+      case 'deg': isDeg = !isDeg; updateLamps(); break;
+      case 'inv': isInv = !isInv; updateLamps(); break;
+      case 'pi': append('π'); break;
+      case 'e': append('e'); break;
+      case 'pow': append('^'); break;
+      case 'sqrt': append('√('); break;
+      case 'fact': append('!'); break;
+      case 'percent': append('/100'); break;
+      case 'sin': case 'cos': case 'tan':
+        append((act) + '('); break;
+      case 'log': append('log('); break;
+      case 'ln': append('ln('); break;
+      case 'inv-fn': append('1/('); break;
+      default: break;
+    }
+  });
+
+  // keyboard support
+  window.addEventListener('keydown', (e)=>{
+    const k = e.key;
+    if(/[0-9.]/.test(k)){ append(k); return; }
+    if(['+','-','*','/','(',')'].includes(k)){ append(k); return; }
+    if(k === 'Enter' || k === '='){ e.preventDefault(); evaluate(); return; }
+    if(k === 'Backspace'){ backspace(); return; }
+    if(k === 'Escape'){ clearAll(); return; }
+  });
+
+  updateLamps();
+  clearAll();
+})();
+</script>
+
+</body>
+</html>
